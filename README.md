@@ -37,7 +37,11 @@ On the new component panel, copy and paste the following attribute template into
 
 ```json
 {
-  "model_location": "<model_path>"
+  "project": "<roboflow_project_identifier>",
+  "version": "<roboflow_model_version>",
+  "workspace": "<roboflow_workspace_identifier>",
+  "api_key": "<roboflow_private_api_key>",
+  "local": "<run_locally_true_or_false>"
 }
 ```
 
