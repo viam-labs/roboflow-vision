@@ -5,7 +5,6 @@ This module implements the [rdk vision API](https://github.com/rdk/vision-api) i
 This model leverages the [Roboflow python](https://github.com/roboflow/roboflow-python) library to allow for object detection and classification from [Roboflow](https://app.roboflow.com/) models.
 
 Roboflow models can be used either remotely (via Roboflow APIs) or locally (automatically downloaded from [Roboflow](https://app.roboflow.com/)).
-If models are run locally, this model only supports CPU-based inference (not GPU based inference).
 
 ## Prerequisites
 
@@ -59,6 +58,7 @@ The following attributes are available for `viam-labs:vision:roboflow` model:
 | `workspace` | string | | Roboflow workspace identifier, not required for public projects |
 | `api_key` | string | **Required** | Roboflow private API key |
 | `local` | bool |  | Whether or not to run this model locally (default: false) |
+| `jetpack` | string |  | If running on Nvidia, specify Jetpack version (4.5, 4.6, 5.1 are supported) |
 
 ### Example Configurations
 
