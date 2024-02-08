@@ -21,10 +21,9 @@ from viam.services.vision import Vision
 from viam.components.camera import Camera
 from viam.logging import getLogger
 
+import numpy as np
 from roboflow import Roboflow
-
-import time
-import asyncio
+import docker
 
 LOGGER = getLogger(__name__)
 
@@ -33,6 +32,7 @@ class roboflowInference(Vision, Reconfigurable):
     MODEL: ClassVar[Model] = Model(ModelFamily("viam-labs", "vision"), "roboflow")
     
     model: None
+    container: None
 
     # Constructor
     @classmethod
@@ -62,29 +62,45 @@ class roboflowInference(Vision, Reconfigurable):
         local = config.attributes.fields["local"].bool_value
 
         if local:
-            self.model = project.version(config.attributes.fields["version"].number_value, local="http://localhost:9001/").model
+            container = "roboflow/roboflow-inference-server-arm-cpu"
+            if config.attributes.fields['jetpack'].string_value != "":
+                container = 'roboflow/roboflow-inference-server-jetson-'
+                if config.attributes.fields['jetpack'].string_value == '4.5':
+                    container = container + '4.5.0'
+                elif config.attributes.fields['jetpack'].string_value == '4.6':
+                    container = container + '4.6.1'
+                else:
+                    container = container + "5.1.1"
+
+            docker_client = docker.from_env()
+            container_name = "viam-roboflow-"+config.attributes.fields["project"].string_value
+
+            # stop running container
+            try:
+                self.container.stop()
+            except:
+                LOGGER.debug("Could not stop container, maybe was not running")
+
+            # in case container is left over from previous
+            try:
+                old_container = docker_client.containers.get(container_name)
+                old_container.stop()
+            except:
+                LOGGER.debug("Old container not running")
+            self.container = docker_client.containers.run(container, detach=True, ports={'9001/tcp': 9001}, remove=True, name=container_name)
+            self.model = project.version(int(config.attributes.fields["version"].number_value), local="http://localhost:9001/").model
         else:
-            self.model = project.version(config.attributes.fields["version"].number_value).model
+            self.model = project.version(int(config.attributes.fields["version"].number_value)).model
 
         return
-
-    """ Implement the methods the Viam RDK defines for the Vision API (rdk:service:vision) """
-
     
     async def get_detections_from_camera(
         self, camera_name: str, *, extra: Optional[Mapping[str, Any]] = None, timeout: Optional[float] = None
     ) -> List[Detection]:
-        """Get a list of detections in the next image given a camera and a detector
-
-        Args:
-            camera_name (str): The name of the camera to use for detection
-
-        Returns:
-            List[viam.proto.service.vision.Detection]: A list of 2D bounding boxes, their labels, and the
-            confidence score of the labels, around the found objects in the next 2D image
-            from the given camera, with the given detector applied to it.
-        """
-        ...
+        actual_cam = self.DEPS[Camera.get_resource_name(camera_name)]
+        cam = cast(Camera, actual_cam)
+        cam_image = await cam.get_image(mime_type="image/jpeg")
+        return await self.get_detections(cam_image)
 
     
     async def get_detections(
@@ -94,17 +110,15 @@ class roboflowInference(Vision, Reconfigurable):
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Detection]:
-        """Get a list of detections in the given image using the specified detector
-
-        Args:
-            image (Image): The image to get detections from
-
-        Returns:
-            List[viam.proto.service.vision.Detection]: A list of 2D bounding boxes, their labels, and the
-            confidence score of the labels, around the found objects in the next 2D image
-            from the given camera, with the given detector applied to it.
-        """
-        ...
+        prediction = self.model.predict(np.array(image))
+        pjson = prediction.json()
+        detections = []
+        if len(pjson["predictions"]) >= 1:
+            for p in pjson["predictions"]:
+                detection = { "confidence": p["confidence"], "class_name": p["class"], 
+                             "x_min": int(p["x"]), "x_max": int(p["x"] + p["width"]), "y_min": int(p["y"]), "y_max": int(p["y"] + p["height"]) }
+                detections.append(detection)
+        return detections
 
     
     async def get_classifications_from_camera(
@@ -115,16 +129,10 @@ class roboflowInference(Vision, Reconfigurable):
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Classification]:
-        """Get a list of classifications in the next image given a camera and a classifier
-
-        Args:
-            camera_name (str): The name of the camera to use for detection
-            count (int): The number of classifications desired
-
-        returns:
-            List[viam.proto.service.vision.Classification]: The list of Classifications
-        """
-        ...
+        actual_cam = self.DEPS[Camera.get_resource_name(camera_name)]
+        cam = cast(Camera, actual_cam)
+        cam_image = await cam.get_image(mime_type="image/jpeg")
+        return await self.get_classifications(cam_image)
 
     
     async def get_classifications(
@@ -135,56 +143,28 @@ class roboflowInference(Vision, Reconfigurable):
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Classification]:
-        """Get a list of classifications in the given image using the specified classifier
-
-        Args:
-            image (Image): The image to get detections from
-            count (int): The number of classifications desired
-
-        Returns:
-            List[viam.proto.service.vision.Classification]: The list of Classifications
-        """
-        ...
+        prediction = self.model.predict(np.array(image))
+        pjson = prediction.json()
+        detections = []
+        total = 0
+        if len(pjson["predictions"]) >= 1:                
+            for p in pjson["predictions"]:
+                if isinstance(pjson["predictions"], dict):
+                    detection = { "confidence": pjson["predictions"][p]["confidence"], "class_name": p }
+                else:
+                    detection = { "confidence": p["confidence"], "class_name": p["class"] }
+                detections.append(detection)
+                total = total + 1
+                if total == count:
+                    break
+        return detections
 
     
     async def get_object_point_clouds(
         self, camera_name: str, *, extra: Optional[Mapping[str, Any]] = None, timeout: Optional[float] = None
     ) -> List[PointCloudObject]:
-        """
-        Returns a list of the 3D point cloud objects and associated metadata in the latest
-        picture obtained from the specified 3D camera (using the specified segmenter).
-
-        To deserialize the returned information into a numpy array, use the Open3D library.
-        ::
-
-            import numpy as np
-            import open3d as o3d
-
-            object_point_clouds = await vision.get_object_point_clouds(camera_name, segmenter_name)
-
-            # write the first object point cloud into a temporary file
-            with open("/tmp/pointcloud_data.pcd", "wb") as f:
-                f.write(object_point_clouds[0].point_cloud)
-            pcd = o3d.io.read_point_cloud("/tmp/pointcloud_data.pcd")
-            points = np.asarray(pcd.points)
-
-        Args:
-            camera_name (str): The name of the camera
-
-        Returns:
-            List[viam.proto.common.PointCloudObject]: The pointcloud objects with metadata
-        """
-        ...
+       return
 
     
     async def do_command(self, command: Mapping[str, ValueTypes], *, timeout: Optional[float] = None) -> Mapping[str, ValueTypes]:
-        """Send/receive arbitrary commands
-
-        Args:
-            command (Dict[str, ValueTypes]): The command to execute
-
-        Returns:
-            Dict[str, ValueTypes]: Result of the executed command
-        """
-        ...
-
+        return

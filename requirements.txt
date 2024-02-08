@@ -1,1 +1,4 @@
 viam-sdk
+roboflow
+docker
+numpy

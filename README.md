@@ -58,7 +58,7 @@ The following attributes are available for `viam-labs:vision:roboflow` model:
 | `workspace` | string | | Roboflow workspace identifier, not required for public projects |
 | `api_key` | string | **Required** | Roboflow private API key |
 | `local` | bool |  | Whether or not to run this model locally (default: false) |
-| `jetpack` | string |  | If running on Nvidia, specify Jetpack version (4.5, 4.6, 5.1 are supported) |
+| `jetpack` | string |  | If running on Nvidia, you must specify Jetpack version (4.5, 4.6, 5.1 are supported) |
 
 ### Example Configurations
 
