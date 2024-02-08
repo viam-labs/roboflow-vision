@@ -2,9 +2,9 @@
 
 This module implements the [rdk vision API](https://github.com/rdk/vision-api) in a viam-labs:vision:roboflow model.
 
-This model leverages the [Roboflow python](https://github.com/roboflow/roboflow-python) library to allow for object detection and classification from [Roboflow](https://app.roboflow.com/) models.
+This model leverages the [Roboflow python](https://github.com/roboflow/roboflow-python) library to allow for object detection and classification from [Roboflow Universe](https://universe.roboflow.com/) models.
 
-Roboflow models can be used either remotely (via Roboflow APIs) or locally (automatically downloaded from [Roboflow](https://app.roboflow.com/)).
+[Roboflow](https://roboflow.com/) models can be used either remotely (via Roboflow APIs) or locally (automatically downloaded from Roboflow).
 
 ## Prerequisites
 
@@ -98,4 +98,15 @@ Note: if using this method, any cameras you are using must be set in the `depend
       "depends_on": [
         "cam"
       ]
+```
+
+## Troubleshooting
+
+### Service will not initialize properly, with "port is already allocated" error in logs
+
+If you are running in local mode, a Docker container named 'viam-roboflow-<serviceName>' is created.
+If you rename the service, the old container may still be running and will need to be stopped manually.
+
+```bash
+docker stop <container_name>
 ```

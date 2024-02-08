@@ -57,23 +57,23 @@ class roboflowInference(Vision, Reconfigurable):
 
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
+        self.DEPS = dependencies
         rf = Roboflow(api_key=config.attributes.fields["api_key"].string_value)
         project = rf.workspace().project(config.attributes.fields["project"].string_value)
         local = config.attributes.fields["local"].bool_value
-
         if local:
-            container = "roboflow/roboflow-inference-server-arm-cpu"
+            image = "roboflow/roboflow-inference-server-arm-cpu"
             if config.attributes.fields['jetpack'].string_value != "":
-                container = 'roboflow/roboflow-inference-server-jetson-'
+                image = 'roboflow/roboflow-inference-server-jetson-'
                 if config.attributes.fields['jetpack'].string_value == '4.5':
-                    container = container + '4.5.0'
+                    image = image + '4.5.0'
                 elif config.attributes.fields['jetpack'].string_value == '4.6':
-                    container = container + '4.6.1'
+                    image = image + '4.6.1'
                 else:
-                    container = container + "5.1.1"
+                    image = image + "5.1.1"
 
             docker_client = docker.from_env()
-            container_name = "viam-roboflow-"+config.attributes.fields["project"].string_value
+            container_name = "viam-roboflow-"+config.name
 
             # stop running container
             try:
@@ -87,7 +87,7 @@ class roboflowInference(Vision, Reconfigurable):
                 old_container.stop()
             except:
                 LOGGER.debug("Old container not running")
-            self.container = docker_client.containers.run(container, detach=True, ports={'9001/tcp': 9001}, remove=True, name=container_name)
+            self.container = docker_client.containers.run(image, detach=True, ports={'9001/tcp': 9001}, remove=True, name=container_name)
             self.model = project.version(int(config.attributes.fields["version"].number_value), local="http://localhost:9001/").model
         else:
             self.model = project.version(int(config.attributes.fields["version"].number_value)).model
@@ -116,7 +116,8 @@ class roboflowInference(Vision, Reconfigurable):
         if len(pjson["predictions"]) >= 1:
             for p in pjson["predictions"]:
                 detection = { "confidence": p["confidence"], "class_name": p["class"], 
-                             "x_min": int(p["x"]), "x_max": int(p["x"] + p["width"]), "y_min": int(p["y"]), "y_max": int(p["y"] + p["height"]) }
+                             "x_min": int(p["x"] -  p["width"]/2), "x_max": int(p["x"] + p["width"]/2), 
+                             "y_min": int(p["y"] - p["height"]/2), "y_max": int(p["y"] + p["height"]/2) }
                 detections.append(detection)
         return detections
 
