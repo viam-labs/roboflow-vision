@@ -1,0 +1,13 @@
+{
+  "module_id": "viam-labs:roboflow-vision",
+  "visibility": "public",
+  "url": "https://github.com/viam-labs/roboflow-vision",
+  "description": "Viam modular computer vision service for inference from Roboflow models. Roboflow models can be inferenced either remotely or locally (automatically downloaded from Roboflow).",
+  "models": [
+    {
+      "api": "rdk:service:vision",
+      "model": "viam-labs:vision:roboflow"
+    }
+  ],
+  "entrypoint": "run.sh"
+}
