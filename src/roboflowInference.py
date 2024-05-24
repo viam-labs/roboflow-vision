@@ -5,7 +5,6 @@ from typing import Any, Final, List, Mapping, Optional, Union
 
 from PIL import Image
 
-from viam.media.video import RawImage
 from viam.proto.common import PointCloudObject
 from viam.proto.service.vision import Classification, Detection
 from viam.resource.types import RESOURCE_NAMESPACE_RDK, RESOURCE_TYPE_SERVICE, Subtype
@@ -17,8 +16,10 @@ from viam.proto.common import ResourceName, Vector3
 from viam.resource.base import ResourceBase
 from viam.resource.types import Model, ModelFamily
 
-from viam.services.vision import Vision
-from viam.components.camera import Camera
+from viam.services.vision import Vision, CaptureAllResult
+from viam.proto.service.vision import GetPropertiesResponse
+from viam.components.camera import Camera, ViamImage
+from viam.media.utils.pil import viam_to_pil_image
 from viam.logging import getLogger
 
 import numpy as np
@@ -94,23 +95,29 @@ class roboflowInference(Vision, Reconfigurable):
 
         return
     
-    async def get_detections_from_camera(
-        self, camera_name: str, *, extra: Optional[Mapping[str, Any]] = None, timeout: Optional[float] = None
-    ) -> List[Detection]:
+    async def get_cam_image(
+        self,
+        camera_name: str
+    ) -> Image:
         actual_cam = self.DEPS[Camera.get_resource_name(camera_name)]
         cam = cast(Camera, actual_cam)
         cam_image = await cam.get_image(mime_type="image/jpeg")
-        return await self.get_detections(cam_image)
+        return viam_to_pil_image(cam_image)
+    
+    async def get_detections_from_camera(
+        self, camera_name: str, *, extra: Optional[Mapping[str, Any]] = None, timeout: Optional[float] = None
+    ) -> List[Detection]:
+        return await self.get_detections(await self.get_cam_image(camera_name))
 
     
     async def get_detections(
         self,
-        image: Union[Image.Image, RawImage],
+        image: ViamImage,
         *,
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Detection]:
-        prediction = self.model.predict(np.array(image))
+        prediction = self.model.predict(np.array(viam_to_pil_image(image)))
         pjson = prediction.json()
         detections = []
         if len(pjson["predictions"]) >= 1:
@@ -130,21 +137,18 @@ class roboflowInference(Vision, Reconfigurable):
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Classification]:
-        actual_cam = self.DEPS[Camera.get_resource_name(camera_name)]
-        cam = cast(Camera, actual_cam)
-        cam_image = await cam.get_image(mime_type="image/jpeg")
-        return await self.get_classifications(cam_image)
+        return await self.get_classifications(await self.get_cam_image(camera_name))
 
     
     async def get_classifications(
         self,
-        image: Union[Image.Image, RawImage],
+        image: ViamImage,
         count: int,
         *,
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Classification]:
-        prediction = self.model.predict(np.array(image))
+        prediction = self.model.predict(np.array(viam_to_pil_image(image)))
         pjson = prediction.json()
         detections = []
         total = 0
@@ -169,3 +173,32 @@ class roboflowInference(Vision, Reconfigurable):
     
     async def do_command(self, command: Mapping[str, ValueTypes], *, timeout: Optional[float] = None) -> Mapping[str, ValueTypes]:
         return
+
+    async def capture_all_from_camera(
+        self,
+        camera_name: str,
+        return_image: bool = False,
+        return_classifications: bool = False,
+        return_detections: bool = False,
+        return_object_point_clouds: bool = False,
+        *,
+        extra: Optional[Mapping[str, Any]] = None,
+        timeout: Optional[float] = None,
+    ) -> CaptureAllResult:
+        result = CaptureAllResult()
+        result.image = await self.get_cam_image(camera_name)
+        result.classifications = await self.get_classifications(result.image, 1)
+        result.detections = await self.get_detections(result.image)
+        return result
+
+    async def get_properties(
+        self,
+        *,
+        extra: Optional[Mapping[str, Any]] = None,
+        timeout: Optional[float] = None,
+    ) -> GetPropertiesResponse:
+        return GetPropertiesResponse(
+            classifications_supported=True,
+            detections_supported=True,
+            object_point_clouds_supported=False
+        )
