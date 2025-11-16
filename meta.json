@@ -9,7 +9,7 @@
       "api": "rdk:service:vision",
       "model": "viam-labs:vision:roboflow",
       "markdown_link": "README.md#configure-your-viam-labsvisionroboflow-vision-service",
-      "short_description": "Use a Roboflow Universe model as a vision service for detections and classifications",
+      "short_description": "Use a Roboflow Universe model as a vision service for detections and classifications"
     }
   ],
   "entrypoint": "run.sh"
