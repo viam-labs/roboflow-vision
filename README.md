@@ -22,17 +22,7 @@ This step is not required if you plan on only using hosted Roboflow models (Robo
 
 To use this module, follow these instructions to [add a module from the Viam Registry](https://docs.viam.com/registry/configure/#add-a-modular-resource-from-the-viam-registry) and select the `viam-labs:vision:roboflow` model from the [viam-labs roboflow module](https://app.viam.com/module/viam-labs/roboflow-vision).
 
-## Configure your vision
-
-> [!NOTE]  
-> Before configuring your vision, you must [create a machine](https://docs.viam.com/manage/fleet/machines/#add-a-new-machine).
-
-Navigate to the **Config** tab of your robot’s page in [the Viam app](https://app.viam.com/).
-Click on the **Components** subtab and click **Create component**.
-Select the `vision` type, then select the `viam-labs:vision:roboflow` model.
-Enter a name for your vision and click **Create**.
-
-On the new component panel, copy and paste the following attribute template into your vision service's **Attributes** box:
+## Configure your viam-labs:vision:roboflow vision service
 
 ```json
 {
@@ -43,9 +33,6 @@ On the new component panel, copy and paste the following attribute template into
   "local": "<run_locally_true_or_false>"
 }
 ```
-
-> [!NOTE]  
-> For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
 
 ### Attributes
 
@@ -72,13 +59,13 @@ The following attributes are available for `viam-labs:vision:roboflow` model:
 }
 ```
 
-## API
+### APIs Available
 
 The roboflow resource provides the following methods from Viam's built-in [rdk:service:vision API](https://python.viam.dev/autoapi/viam/services/vision/client/index.html)
 
-### get_detections(image=*binary*)
+#### get_detections(image=*binary*)
 
-### get_detections_from_camera(camera_name=*string*)
+#### get_detections_from_camera(camera_name=*string*)
 
 Note: if using this method, any cameras you are using must be set in the `depends_on` array for the service configuration, for example:
 
@@ -88,9 +75,9 @@ Note: if using this method, any cameras you are using must be set in the `depend
       ]
 ```
 
-### get_classifications(image=*binary*)
+#### get_classifications(image=*binary*)
 
-### get_classifications_from_camera(camera_name=*string*)
+#### get_classifications_from_camera(camera_name=*string*)
 
 Note: if using this method, any cameras you are using must be set in the `depends_on` array for the service configuration, for example:
 
