@@ -7,4 +7,4 @@ from viam.resource.registry import Registry, ResourceCreatorRegistration
 
 from .roboflowInference import roboflowInference
 
-Registry.register_resource_creator(Vision.SUBTYPE, roboflowInference.MODEL, ResourceCreatorRegistration(roboflowInference.new, roboflowInference.validate))
+Registry.register_resource_creator(Vision.API, roboflowInference.MODEL, ResourceCreatorRegistration(roboflowInference.new, roboflowInference.validate))

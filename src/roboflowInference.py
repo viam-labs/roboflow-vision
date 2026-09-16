@@ -7,7 +7,7 @@ from PIL import Image
 
 from viam.proto.common import PointCloudObject
 from viam.proto.service.vision import Classification, Detection
-from viam.resource.types import RESOURCE_NAMESPACE_RDK, RESOURCE_TYPE_SERVICE, Subtype
+from viam.resource.types import RESOURCE_NAMESPACE_RDK, RESOURCE_TYPE_SERVICE
 from viam.utils import ValueTypes
 
 from viam.module.types import Reconfigurable
