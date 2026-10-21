@@ -1,4 +1,4 @@
-viam-sdk==0.83.0
+viam-sdk==0.85.0
 roboflow
 docker
 numpy
