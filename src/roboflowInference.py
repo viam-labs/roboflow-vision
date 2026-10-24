@@ -83,14 +83,14 @@ class roboflowInference(Vision, Reconfigurable):
             # stop running container
             try:
                 self.container.stop()
-            except:
+            except Exception:
                 LOGGER.debug("Could not stop container, maybe was not running")
 
             # in case container is left over from previous
             try:
                 old_container = docker_client.containers.get(container_name)
                 old_container.stop()
-            except:
+            except Exception:
                 LOGGER.debug("Old container not running")
             self.container = docker_client.containers.run(
                 image,
