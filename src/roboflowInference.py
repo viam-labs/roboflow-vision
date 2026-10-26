@@ -35,9 +35,7 @@ class roboflowInference(Vision, Reconfigurable):
 
     # Constructor
     @classmethod
-    def new(
-        cls, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]
-    ) -> Self:
+    def new(cls, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]) -> Self:
         my_class = cls(config.name)
         my_class.reconfigure(config, dependencies)
         return my_class
@@ -57,14 +55,10 @@ class roboflowInference(Vision, Reconfigurable):
         return
 
     # Handles attribute reconfiguration
-    def reconfigure(
-        self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]
-    ):
+    def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
         self.DEPS = dependencies
         rf = Roboflow(api_key=config.attributes.fields["api_key"].string_value)
-        project = rf.workspace().project(
-            config.attributes.fields["project"].string_value
-        )
+        project = rf.workspace().project(config.attributes.fields["project"].string_value)
         local = config.attributes.fields["local"].bool_value
         if local:
             image = "roboflow/roboflow-inference-server-arm-cpu"
@@ -104,9 +98,7 @@ class roboflowInference(Vision, Reconfigurable):
                 local="http://localhost:9001/",
             ).model
         else:
-            self.model = project.version(
-                int(config.attributes.fields["version"].number_value)
-            ).model
+            self.model = project.version(int(config.attributes.fields["version"].number_value)).model
 
         return
 

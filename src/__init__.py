@@ -8,7 +8,5 @@ from viam.services.vision import Vision
 from .roboflowInference import roboflowInference
 
 Registry.register_resource_creator(
-    Vision.API,
-    roboflowInference.MODEL,
-    ResourceCreatorRegistration(roboflowInference.new, roboflowInference.validate),
+    Vision.API, roboflowInference.MODEL, ResourceCreatorRegistration(roboflowInference.new, roboflowInference.validate)
 )
